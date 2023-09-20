@@ -56,19 +56,19 @@ public sealed class PaletteIdentification : MonoBehaviour
         do
         {
             _palette = RepeatCall(() => Random.Range(0, 4), 16).ToArray();
-            if(++iter == 1600)
+            if (++iter == 1600)
             {
                 Log("This ruleseed appears to have no solutions. Please contact Bagels so this can be resolved.");
                 _solvable.HandlePass();
                 throw new Exception();
             }
-            else if(iter % 100 == 0)
+            else if (iter % 100 == 0)
             {
                 _chosenBitmapIx++;
                 _chosenBitmapIx %= 16;
             }
         }
-        while (!new int[] { 0, 1, 2, 3 }.All(_palette.Contains) || !Unique(_chosenBitmapIx, _palette));
+        while (!new int[] { 0, 1, 2, 3 }.All(i => _palette.Count(j => i == j) > 1) || !Unique(_chosenBitmapIx, _palette));
         float hue = Random.Range(0f, 1f);
         var baseColors = Enumerable.Range(0, 4)
             .Select(i => Color.HSVToRGB((hue + 0.25f * i) % 1f, Random.Range(0.5f, 1f), Random.Range(0.7f, 1f)))
@@ -150,7 +150,6 @@ public sealed class PaletteIdentification : MonoBehaviour
     {
         if (_selectedPixels.Count < 4)
             return true;
-        _usedHighlights.Add(_highlightedPixel);
         Log("That's {0} stage{1} done.", _usedHighlights.Count, _usedHighlights.Count == 1 ? "" : "s");
         if (_usedHighlights.Count == 4)
         {
@@ -164,6 +163,7 @@ public sealed class PaletteIdentification : MonoBehaviour
             _decalGood.SetActive(true);
             return false;
         }
+        _usedHighlights.Add(ChosenBitmap[_highlightedPixel]);
         Generate();
         return false;
     }
@@ -185,9 +185,11 @@ public sealed class PaletteIdentification : MonoBehaviour
     void Generate()
     {
         _selectedPixels.Clear();
-        var forbidden = _usedHighlights.Concat(new int[] { _highlightedPixel }).ToArray();
+        var forbidden = _usedHighlights;
+        if(_highlightedPixel != -1)
+            forbidden = forbidden.Concat(new int[] { ChosenBitmap[_highlightedPixel] }).ToList();
         do _highlightedPixel = Random.Range(0, 64);
-        while (forbidden.Contains(_highlightedPixel));
+        while (_usedHighlights.Contains(ChosenBitmap[_highlightedPixel]));
 
         foreach (var px in _buttons)
             px.SetDecals();
@@ -199,12 +201,22 @@ public sealed class PaletteIdentification : MonoBehaviour
 
     bool Unique(int bitmap, int[] palette)
     {
-        var assignment = Assign(_bitmaps[bitmap], palette);
+        var assignment = _bitmaps[bitmap].Select(i => palette[i]).ToArray();
         return Enumerable.Range(0, 16).Except(new int[] { bitmap })
-             .All(bmp => !Assign(_bitmaps[bmp], palette).SequenceEqual(assignment));
+             .All(bmp => Enumerable.Range(0, 16).Any(i => EveryIndexOf(_bitmaps[bmp], i).Select(j => assignment[j]).Distinct().Count() > 1));
     }
 
-    IEnumerable<int> Assign(int[] bmp, int[] palette) => bmp.Select(i => palette[i]);
+    IEnumerable<int> EveryIndexOf<T>(T[] arr, T obj)
+    {
+        var ix = 0;
+        while (true)
+        {
+            ix = Array.IndexOf(arr, obj, ix + 1);
+            if (ix == -1)
+                yield break;
+            yield return ix;
+        }
+    }
 
     IEnumerable<T> RepeatCall<T>(Func<T> selector, int count) => Enumerable.Repeat(0, count).Select(_ => selector());
 

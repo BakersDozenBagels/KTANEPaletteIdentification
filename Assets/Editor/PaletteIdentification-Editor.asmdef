@@ -1,0 +1,10 @@
+{
+    "name": "PaletteIdentification-Editor",
+    "references": [
+        "PaletteIdentification"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": []
+}

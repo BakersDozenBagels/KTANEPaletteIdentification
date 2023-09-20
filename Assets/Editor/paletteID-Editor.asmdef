@@ -1,0 +1,10 @@
+{
+  "name": "paletteID-Editor",
+  "references": [
+    "paletteID"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": []
+}
